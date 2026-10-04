@@ -1,0 +1,12 @@
+---
+title: ""
+page-layout: full
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  filter-ui: false
+  sort-ui: false
+  categories: false
+  fields: [date, title, description, reading-time]
+---

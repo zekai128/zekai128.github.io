@@ -1,0 +1,22 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Brian Huang"
+  search: false
+  navbar:
+    title: "zekai128"
+    left:
+      - href: index.qmd
+        text: Articles
+      - href: about.qmd
+        text: About
+  favicon: favicon.ico
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: false
+    highlight-style: github
