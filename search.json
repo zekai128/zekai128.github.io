@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "posts/causal-attention.html",
+    "href": "posts/causal-attention.html",
+    "title": "Causal Self-Attention from Scratch in CUDA",
+    "section": "",
+    "text": "Part of the smallm series — building a transformer training library from scratch in C++/CUDA."
+  },
+  {
+    "objectID": "posts/causal-attention.html#the-three-matrix-design",
+    "href": "posts/causal-attention.html#the-three-matrix-design",
+    "title": "Causal Self-Attention from Scratch in CUDA",
+    "section": "The three-matrix design",
+    "text": "The three-matrix design\nRaw token embeddings are a poor substrate for attention. If you directly computed \\(x_i \\cdot x_j\\) as the attention score, every token’s ability to query and its ability to be queried would be coupled — the same vector serving both roles.\nThe solution is three learned projections:\n\\[\\text{Attn}(Q, K, V) = \\text{softmax}\\!\\left(\\frac{QK^T}{\\sqrt{d_{\\text{head}}}}\\right) V\\]\nwhere \\(Q = XW_Q\\), \\(K = XW_K\\), \\(V = XW_V\\)."
+  },
+  {
+    "objectID": "posts/causal-attention.html#the-scaling-problem",
+    "href": "posts/causal-attention.html#the-scaling-problem",
+    "title": "Causal Self-Attention from Scratch in CUDA",
+    "section": "The scaling problem",
+    "text": "The scaling problem\nThe dot products \\(QK^T\\) have variance proportional to \\(d_{\\text{head}}\\). Without scaling, a large \\(d_{\\text{head}}\\) pushes the softmax inputs into saturation — the exponentials collapse and all probability mass lands on one token.\nDividing by \\(\\sqrt{d_{\\text{head}}}\\) normalizes variance back to ~1:\nfloat d_head = (float)(d_model / n_heads);\nTensor* attn_scaled = scale(attn_weights, 1.0f / sqrtf(d_head));"
+  },
+  {
+    "objectID": "posts/causal-attention.html#multi-head-attention-shape-algebra",
+    "href": "posts/causal-attention.html#multi-head-attention-shape-algebra",
+    "title": "Causal Self-Attention from Scratch in CUDA",
+    "section": "Multi-head attention: shape algebra",
+    "text": "Multi-head attention: shape algebra\nAfter the QKV projections we get [B*T, d_model]. We reshape and permute to put the head dimension first, so cuBLAS treats heads as the batch dimension:\n[B*T, d_model]  →reshape→  [B, T, H, d_head]  →permute(0,2,1,3)→  [B, H, T, d_head]\nThen matmul(Q, K) gives [B, H, T, T] — one attention matrix per head per batch item.\n\n\n\n\n\n\nWhy not use 3D weight tensors and broadcasting?\n\n\n\n\n\nThe naive approach is \\(W_Q\\) of shape [1, d_model, d_model] and broadcasting over the batch dim. The problem is cuBLAS GemmStridedBatched requires a fixed stride — it can’t represent “same weight for all batches.”\nWe instead fold: [B, T, d_model] → [B*T, d_model] before projecting. This is a 2D matmul and costs nothing since reshape is a zero-copy view operation."
+  },
+  {
+    "objectID": "posts/causal-attention.html#the-causal-mask",
+    "href": "posts/causal-attention.html#the-causal-mask",
+    "title": "Causal Self-Attention from Scratch in CUDA",
+    "section": "The causal mask",
+    "text": "The causal mask\nA decoder must never attend to future tokens. We fill upper-triangle positions with \\(-10^9\\) before softmax:\n// mask[i,j] = 1.0 where j &gt; i (future tokens)\nTensor* masked = masked_fill(attn_scaled, causal_mask, -1e9f);\nTensor* attn_probs = softmax(masked);\nAfter masking, future positions have softmax weight ~0. The model doesn’t learn to ignore the future — the architecture makes it structurally impossible.\n\n\n\n\n\n\nWarning\n\n\n\nOur masked_fill kernel uses the same flat index for mask and input — no broadcasting. The mask must be exactly [B, n_heads, T, T]."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Brian Huang",
+    "section": "",
+    "text": "Causal Self-Attention from Scratch in CUDA\n\n\n\n\n\nBuilding the attention mechanism kernel by kernel, and what I learned about masking, softmax saturation, and gradient flow.\n\n\n\n\n\nOct 4, 2026\n\n\n2 min\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "Brian Huang",
+    "section": "",
+    "text": "I’m Brian Huang.\nCurrently work as a software engineer at Amazon. Learning about ML.\nLinkedIn"
+  }
+]
